@@ -1,0 +1,87 @@
+// Adam Painter Booking System - Database Schema
+// This schema defines the core entities for the painter booking system
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User roles enum
+enum UserRole {
+  PAINTER
+  CUSTOMER
+}
+
+// Booking status enum
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+// Users table - handles both painters and customers
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  availabilities Availability[] // Only for painters
+  bookings       Booking[]      // Bookings as customer
+  assignedJobs   Booking[]      @relation("PainterBookings") // Bookings as assigned painter
+
+  @@map("users")
+}
+
+// Availability slots defined by painters
+model Availability {
+  id        String   @id @default(uuid())
+  painterId String
+  startTime DateTime
+  endTime   DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  painter  User      @relation(fields: [painterId], references: [id], onDelete: Cascade)
+  bookings Booking[] // Bookings that use this availability
+
+  // Constraints
+  @@index([painterId])
+  @@index([startTime, endTime])
+  @@map("availabilities")
+}
+
+// Booking requests and assignments
+model Booking {
+  id             String        @id @default(uuid())
+  customerId     String
+  painterId      String?       // Assigned painter (nullable until assigned)
+  availabilityId String?       // Reference to the availability slot used
+  startTime      DateTime
+  endTime        DateTime
+  status         BookingStatus @default(PENDING)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  // Relations
+  customer     User          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  painter      User?         @relation("PainterBookings", fields: [painterId], references: [id], onDelete: SetNull)
+  availability Availability? @relation(fields: [availabilityId], references: [id], onDelete: SetNull)
+
+  // Constraints
+  @@index([customerId])
+  @@index([painterId])
+  @@index([startTime, endTime])
+  @@index([status])
+  @@map("bookings")
+}
