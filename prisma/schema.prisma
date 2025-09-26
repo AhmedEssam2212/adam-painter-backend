@@ -12,6 +12,7 @@ datasource db {
 
 // User roles enum
 enum UserRole {
+  ADMIN
   PAINTER
   CUSTOMER
 }
@@ -21,7 +22,6 @@ enum BookingStatus {
   PENDING
   CONFIRMED
   CANCELLED
-  COMPLETED
 }
 
 // Users table - handles both painters and customers

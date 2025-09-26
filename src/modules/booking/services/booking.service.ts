@@ -1,37 +1,43 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
+
 import { BookingRepository } from '../repositories';
 import { AvailabilityRepository } from '../../availability/repositories';
 import { CreateBookingRequestDto, UpdateBookingDto, BookingResponseDto } from '../dto';
 import { UserRole, BookingStatus } from '../../../common/enums';
 import { UserResponseDto } from '../../users/dto';
 
+import { ValidationService } from '../../../common/services/validation.service';
+
 @Injectable()
 export class BookingService {
   constructor(
     private readonly bookingRepository: BookingRepository,
     private readonly availabilityRepository: AvailabilityRepository,
+    private readonly validationService: ValidationService,
   ) {}
 
   async createBookingRequest(
     createBookingRequestDto: CreateBookingRequestDto,
     user: UserResponseDto,
   ): Promise<BookingResponseDto> {
-    // Only customers can create booking requests
-    if (user.role !== UserRole.CUSTOMER) {
-      throw new ForbiddenException('Only customers can create booking requests');
-    }
+    // Validate user permissions
+    this.validationService.validateUserPermission(
+      user.role,
+      [UserRole.CUSTOMER],
+      'create booking requests'
+    );
 
-    // Validate time range
+    // Validate time slot
     const startTime = new Date(createBookingRequestDto.startTime);
     const endTime = new Date(createBookingRequestDto.endTime);
 
-    if (startTime >= endTime) {
-      throw new BadRequestException('Start time must be before end time');
-    }
-
-    if (startTime < new Date()) {
-      throw new BadRequestException('Cannot book in the past');
-    }
+    this.validationService.validateTimeSlot({ startTime, endTime });
+    this.validationService.validateAdvanceNotice(startTime, 24);
 
     // Find available painters for the requested time slot
     const availableSlots = await this.availabilityRepository.findAvailableSlots(startTime, endTime);
@@ -40,7 +46,7 @@ export class BookingService {
       throw new BadRequestException('No painters are available for the requested time slot.');
     }
 
-    // Select the first available painter (you could implement more sophisticated logic here)
+    // Simply select the first available painter (automatic assignment)
     const selectedSlot = availableSlots[0];
     const painterId = selectedSlot.painterId;
 
@@ -67,22 +73,35 @@ export class BookingService {
   }
 
   async findMyBookings(user: UserResponseDto): Promise<BookingResponseDto[]> {
-    let bookings;
-
     if (user.role === UserRole.CUSTOMER) {
-      bookings = await this.bookingRepository.findByCustomerId(user.id);
+      return this.findAll({ customerId: user.id });
     } else if (user.role === UserRole.PAINTER) {
-      bookings = await this.bookingRepository.findByPainterId(user.id);
+      return this.findAll({ painterId: user.id });
     } else {
       throw new ForbiddenException('Invalid user role');
     }
-
-    return bookings.map(booking => new BookingResponseDto(booking));
   }
 
-  async findAll(): Promise<BookingResponseDto[]> {
-    const bookings = await this.bookingRepository.findAllWithDetails();
-    return bookings.map(booking => new BookingResponseDto(booking));
+  async findAll(filters?: {
+    status?: BookingStatus;
+    customerId?: string;
+    painterId?: string;
+    startDate?: Date;
+    endDate?: Date;
+  }): Promise<BookingResponseDto[]> {
+    let bookings: any[];
+
+    if (filters?.customerId) {
+      bookings = await this.bookingRepository.findByCustomerId(filters.customerId);
+    } else if (filters?.painterId) {
+      bookings = await this.bookingRepository.findByPainterId(filters.painterId);
+    } else if (filters?.status) {
+      bookings = await this.bookingRepository.findAll({ status: filters.status });
+    } else {
+      bookings = await this.bookingRepository.findAllWithDetails();
+    }
+
+    return bookings.map((booking: any) => new BookingResponseDto(booking));
   }
 
   async findById(id: string): Promise<BookingResponseDto> {
@@ -104,9 +123,7 @@ export class BookingService {
     }
 
     // Check permissions
-    const canUpdate = 
-      booking.customerId === user.id || 
-      booking.painterId === user.id;
+    const canUpdate = booking.customerId === user.id || booking.painterId === user.id;
 
     if (!canUpdate) {
       throw new ForbiddenException('You can only update your own bookings');
@@ -114,11 +131,11 @@ export class BookingService {
 
     // Validate time changes if provided
     if (updateBookingDto.startTime || updateBookingDto.endTime) {
-      const startTime = updateBookingDto.startTime 
-        ? new Date(updateBookingDto.startTime) 
+      const startTime = updateBookingDto.startTime
+        ? new Date(updateBookingDto.startTime)
         : booking.startTime;
-      const endTime = updateBookingDto.endTime 
-        ? new Date(updateBookingDto.endTime) 
+      const endTime = updateBookingDto.endTime
+        ? new Date(updateBookingDto.endTime)
         : booking.endTime;
 
       if (startTime >= endTime) {
@@ -155,9 +172,7 @@ export class BookingService {
     }
 
     // Check permissions
-    const canCancel = 
-      booking.customerId === user.id || 
-      booking.painterId === user.id;
+    const canCancel = booking.customerId === user.id || booking.painterId === user.id;
 
     if (!canCancel) {
       throw new ForbiddenException('You can only cancel your own bookings');
@@ -167,10 +182,6 @@ export class BookingService {
       throw new BadRequestException('Booking is already cancelled');
     }
 
-    if (booking.status === BookingStatus.COMPLETED) {
-      throw new BadRequestException('Cannot cancel completed booking');
-    }
-
     const updatedBooking = await this.bookingRepository.update(id, {
       status: BookingStatus.CANCELLED,
     });
@@ -178,17 +189,57 @@ export class BookingService {
     return new BookingResponseDto(updatedBooking);
   }
 
-  async delete(id: string, user: UserResponseDto): Promise<void> {
+  async delete(id: string, user?: UserResponseDto): Promise<void> {
     const booking = await this.bookingRepository.findWithDetails(id);
     if (!booking) {
       throw new NotFoundException('Booking not found');
     }
 
-    // Only customers can delete their own bookings
-    if (booking.customerId !== user.id) {
+    // If user is provided, check permissions (for regular users)
+    if (user && booking.customerId !== user.id) {
       throw new ForbiddenException('You can only delete your own bookings');
     }
 
     await this.bookingRepository.delete(id);
+  }
+
+  // Convenience method for backward compatibility
+  async findByStatus(status: BookingStatus): Promise<BookingResponseDto[]> {
+    return this.findAll({ status });
+  }
+
+  async updateStatus(
+    id: string,
+    status: BookingStatus,
+    user: UserResponseDto
+  ): Promise<BookingResponseDto> {
+    const booking = await this.bookingRepository.findWithDetails(id);
+    if (!booking) {
+      throw new NotFoundException('Booking not found');
+    }
+
+    // Basic role-based validation
+    if (user.role === UserRole.PAINTER && booking.painterId !== user.id) {
+      throw new ForbiddenException('Painters can only update their own bookings');
+    }
+
+    if (user.role === UserRole.CUSTOMER && booking.customerId !== user.id) {
+      throw new ForbiddenException('Customers can only update their own bookings');
+    }
+
+    const updatedBooking = await this.bookingRepository.update(id, { status });
+    return new BookingResponseDto(updatedBooking);
+  }
+
+
+
+  async count(): Promise<number> {
+    const bookings = await this.bookingRepository.findAll();
+    return bookings.length;
+  }
+
+  async countByStatus(status: BookingStatus): Promise<number> {
+    const bookings = await this.bookingRepository.findAll({ status });
+    return bookings.length;
   }
 }
