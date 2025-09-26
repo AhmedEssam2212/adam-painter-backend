@@ -141,32 +141,4 @@ export class AdminController {
   async deleteAvailability(@Param('id') id: string): Promise<void> {
     return this.availabilityService.delete(id);
   }
-
-  // System Statistics
-  @Get('stats')
-  async getSystemStats() {
-    const [totalUsers, totalPainters, totalCustomers, totalBookings, pendingBookings] =
-      await Promise.all([
-        this.userService.count(),
-        this.userService.countByRole(UserRole.PAINTER),
-        this.userService.countByRole(UserRole.CUSTOMER),
-        this.bookingService.count(),
-        this.bookingService.countByStatus(BookingStatus.PENDING),
-      ]);
-
-    return {
-      users: {
-        total: totalUsers,
-        painters: totalPainters,
-        customers: totalCustomers,
-        admins: totalUsers - totalPainters - totalCustomers,
-      },
-      bookings: {
-        total: totalBookings,
-        pending: pendingBookings,
-        confirmed: await this.bookingService.countByStatus(BookingStatus.CONFIRMED),
-        cancelled: await this.bookingService.countByStatus(BookingStatus.CANCELLED),
-      },
-    };
-  }
 }
