@@ -1,0 +1,772 @@
+{
+	"info": {
+		"_postman_id": "adam-painter-booking-api",
+		"name": "Adam Painter Booking API",
+		"description": "Complete API collection for the Adam Painter Booking System with authentication, availability management, and automatic painter assignment. Features weekend booking support and first-available painter selection.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{jwt_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000/api",
+			"type": "string"
+		},
+		{
+			"key": "jwt_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_role",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "customer_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "painter_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "booking_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "availability_id",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register Painter",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    pm.collectionVariables.set('jwt_token', response.data.accessToken);",
+									"    pm.collectionVariables.set('user_id', response.data.user.id);",
+									"    pm.collectionVariables.set('user_role', response.data.user.role);",
+									"    console.log('✅ Painter registered and token saved');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"painter1@example.com\",\n  \"password\": \"password123\",\n  \"name\": \"John Painter\",\n  \"role\": \"PAINTER\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "register"]
+						},
+						"description": "Register a new painter account"
+					}
+				},
+				{
+					"name": "Register Customer",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    pm.collectionVariables.set('customer_token', response.data.accessToken);",
+									"    pm.collectionVariables.set('jwt_token', response.data.accessToken);",
+									"    pm.collectionVariables.set('user_id', response.data.user.id);",
+									"    pm.collectionVariables.set('user_role', response.data.user.role);",
+									"    console.log('✅ Customer registered and token saved');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"customer1@example.com\",\n  \"password\": \"password123\",\n  \"name\": \"Jane Customer\",\n  \"role\": \"CUSTOMER\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "register"]
+						},
+						"description": "Register a new customer account"
+					}
+				},
+				{
+					"name": "Register Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    pm.collectionVariables.set('jwt_token', response.data.access_token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"admin123\",\n  \"name\": \"System Admin\",\n  \"role\": \"ADMIN\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "register"]
+						},
+						"description": "Register a new admin account"
+					}
+				},
+				{
+					"name": "Login Admin (Seeded)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.collectionVariables.set('jwt_token', response.data.accessToken);",
+									"    pm.collectionVariables.set('user_id', response.data.user.id);",
+									"    pm.collectionVariables.set('user_role', response.data.user.role);",
+									"    console.log('✅ Admin logged in successfully');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@adampainter.com\",\n  \"password\": \"admin123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login"]
+						},
+						"description": "Login with seeded admin account"
+					}
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.collectionVariables.set('jwt_token', response.data.accessToken);",
+									"    pm.collectionVariables.set('user_id', response.data.user.id);",
+									"    pm.collectionVariables.set('user_role', response.data.user.role);",
+									"    console.log('✅ User logged in successfully');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"painter1@example.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login"]
+						},
+						"description": "Login with email and password"
+					}
+				}
+			],
+			"description": "Authentication endpoints for registration and login"
+		},
+		{
+			"name": "User Management",
+			"item": [
+				{
+					"name": "Get Current User Profile",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    console.log('✅ Profile retrieved successfully');",
+									"    console.log('👤 User ID:', response.data.id);",
+									"    console.log('📧 Email:', response.data.email);",
+									"    console.log('🏷️ Name:', response.data.name);",
+									"    console.log('🎭 Role:', response.data.role);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/users/me",
+							"host": ["{{base_url}}"],
+							"path": ["users", "me"]
+						},
+						"description": "Get current authenticated user's profile. Returns detailed user information including ID, name, email, and role."
+					}
+				},
+				{
+					"name": "Update Current User Profile",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    console.log('✅ Profile updated successfully');",
+									"    console.log('👤 Updated User ID:', response.data.id);",
+									"    console.log('📧 New Email:', response.data.email);",
+									"    console.log('🏷️ New Name:', response.data.name);",
+									"    console.log('🎭 Role:', response.data.role);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Name\",\n  \"email\": \"updated@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/users/me",
+							"host": ["{{base_url}}"],
+							"path": ["users", "me"]
+						},
+						"description": "Update current user's own profile. Can update name and email. Password updates should be handled through separate security endpoints."
+					}
+				},
+				{
+					"name": "Browse Painters",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/users/painters",
+							"host": ["{{base_url}}"],
+							"path": ["users", "painters"]
+						},
+						"description": "Browse all painters (for customers to find painters)"
+					}
+				},
+				{
+					"name": "Browse Customers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/users/customers",
+							"host": ["{{base_url}}"],
+							"path": ["users", "customers"]
+						},
+						"description": "Browse all customers (for painters to see customer base)"
+					}
+				}
+			],
+			"description": "User profile and browsing endpoints"
+		},
+		{
+			"name": "Availability Management",
+			"item": [
+				{
+					"name": "Create Availability (Painter Only)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    pm.collectionVariables.set('availability_id', response.data.id);",
+									"    console.log('✅ Availability created successfully');",
+									"    console.log('📅 Available from:', response.data.startTime, 'to', response.data.endTime);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"startTime\": \"2025-12-15T09:00:00.000Z\",\n  \"endTime\": \"2025-12-15T17:00:00.000Z\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/availability",
+							"host": ["{{base_url}}"],
+							"path": ["availability"]
+						},
+						"description": "Create a new availability slot (Painter role required). This example sets availability for December 15th, 9 AM to 5 PM."
+					}
+				},
+				{
+					"name": "Get My Availability (Painter Only)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/availability/me",
+							"host": ["{{base_url}}"],
+							"path": ["availability", "me"]
+						},
+						"description": "Get current painter's availability slots"
+					}
+				},
+				{
+					"name": "Update Availability (Painter Only)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"startTime\": \"2024-12-01T10:00:00.000Z\",\n  \"endTime\": \"2024-12-01T16:00:00.000Z\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/availability/:id",
+							"host": ["{{base_url}}"],
+							"path": ["availability", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "availability-id-here"
+								}
+							]
+						},
+						"description": "Update an existing availability slot"
+					}
+				},
+				{
+					"name": "Delete Availability (Painter Only)",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/availability/:id",
+							"host": ["{{base_url}}"],
+							"path": ["availability", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "availability-id-here"
+								}
+							]
+						},
+						"description": "Delete an availability slot"
+					}
+				}
+			],
+			"description": "Painter availability management endpoints"
+		},
+		{
+			"name": "Booking Management",
+			"item": [
+				{
+					"name": "Create Booking Request (Automatic Assignment)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    pm.collectionVariables.set('booking_id', response.data.id);",
+									"    console.log('✅ Booking created with automatic painter assignment');",
+									"    console.log('📋 Booking ID:', response.data.id);",
+									"    console.log('🎨 Assigned Painter:', response.data.painter?.name || 'Not assigned');",
+									"    console.log('📅 Time Slot:', response.data.startTime, 'to', response.data.endTime);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"startTime\": \"2025-12-15T12:00:00.000Z\",\n  \"endTime\": \"2025-12-15T15:00:00.000Z\",\n  \"description\": \"Living room and kitchen painting job. System will automatically assign the first available painter.\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/booking-request",
+							"host": ["{{base_url}}"],
+							"path": ["booking-request"]
+						},
+						"description": "Create a new booking request with automatic painter assignment. The system will find the first available painter for the requested time slot."
+					}
+				},
+				{
+					"name": "Get My Bookings",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    const userRole = pm.collectionVariables.get('user_role');",
+									"    console.log('✅ My bookings retrieved successfully');",
+									"    console.log('👤 User role:', userRole);",
+									"    console.log('📋 Total bookings:', response.data.length);",
+									"    if (response.data.length > 0) {",
+									"        console.log('📅 First booking:', response.data[0].startTime, 'to', response.data[0].endTime);",
+									"        console.log('📊 Status:', response.data[0].status);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/bookings/me",
+							"host": ["{{base_url}}"],
+							"path": ["bookings", "me"]
+						},
+						"description": "Get current user's bookings. Returns customer bookings if logged in as customer, painter bookings if logged in as painter. The API automatically filters based on the authenticated user's role and ID."
+					}
+				},
+				{
+					"name": "Update Booking Status (Painter Only)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"CONFIRMED\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/booking/:id/status",
+							"host": ["{{base_url}}"],
+							"path": ["booking", ":id", "status"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "booking-id-here"
+								}
+							]
+						},
+						"description": "Update booking status (PENDING, CONFIRMED, CANCELLED)"
+					}
+				},
+				{
+					"name": "Cancel Booking (Customer or Painter)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    const userRole = pm.collectionVariables.get('user_role');",
+									"    console.log('✅ Booking cancelled successfully');",
+									"    console.log('👤 Cancelled by:', userRole);",
+									"    console.log('📋 Booking ID:', response.data.bookingId);",
+									"    console.log('📊 New status:', response.data.status);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/bookings/{{booking_id}}/cancel",
+							"host": ["{{base_url}}"],
+							"path": ["bookings", "{{booking_id}}", "cancel"]
+						},
+						"description": "Cancel a booking. Both customers and painters can cancel bookings they are involved in. No request body needed - the API automatically sets status to CANCELLED."
+					}
+				},
+				{
+					"name": "Get Booking Details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/booking/:id",
+							"host": ["{{base_url}}"],
+							"path": ["booking", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "booking-id-here"
+								}
+							]
+						},
+						"description": "Get specific booking details"
+					}
+				}
+			],
+			"description": "Booking management endpoints for customers and painters"
+		},
+		{
+			"name": "Admin Management",
+			"item": [
+				{
+					"name": "Get System Statistics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/admin/stats",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "stats"]
+						},
+						"description": "Get system statistics (Admin only)"
+					}
+				},
+				{
+					"name": "Create User (Admin)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"newuser@example.com\",\n  \"password\": \"password123\",\n  \"name\": \"New User\",\n  \"role\": \"PAINTER\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/users",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "users"]
+						},
+						"description": "Create a new user (Admin only)"
+					}
+				},
+				{
+					"name": "Get All Users (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/admin/users",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "users"]
+						},
+						"description": "Get all users (Admin only)"
+					}
+				},
+				{
+					"name": "Get All Bookings (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/admin/bookings",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "bookings"]
+						},
+						"description": "Get all bookings (Admin only)"
+					}
+				},
+				{
+					"name": "Get Pending Bookings (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/admin/bookings/pending",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "bookings", "pending"]
+						},
+						"description": "Get all pending bookings (Admin only)"
+					}
+				},
+				{
+					"name": "Update Booking Status (Admin)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"CONFIRMED\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/bookings/:id/status",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "bookings", ":id", "status"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "booking-id-here"
+								}
+							]
+						},
+						"description": "Update any booking status (Admin only)"
+					}
+				},
+				{
+					"name": "Delete User (Admin)",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/admin/users/:id",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "users", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "user-id-here"
+								}
+							]
+						},
+						"description": "Delete any user (Admin only)"
+					}
+				},
+				{
+					"name": "Delete Booking (Admin)",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/admin/bookings/:id",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "bookings", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "booking-id-here"
+								}
+							]
+						},
+						"description": "Delete any booking (Admin only)"
+					}
+				}
+			],
+			"description": "Admin-only endpoints for system management"
+		}
+	]
+}
