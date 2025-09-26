@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { Booking } from '@prisma/client';
+import { Booking, BookingStatus } from '@prisma/client';
 import { PrismaService } from '../../../common/services';
 import { BookingRepositoryInterface } from '../interfaces';
 import { CreateBookingRequestDto, UpdateBookingDto } from '../dto';
-import { BookingStatus } from '../../../common/enums';
 
 @Injectable()
 export class BookingRepository implements BookingRepositoryInterface {

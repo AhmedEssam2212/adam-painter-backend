@@ -4,6 +4,8 @@ import { PrismaService } from '../../../common/services';
 import { User } from '../../../common/types';
 import { UserRepositoryInterface } from '../interfaces';
 import { CreateUserDto, UpdateUserDto } from '../dto';
+import { UserRole as PrismaUserRole } from '@prisma/client';
+import { UserRole } from '../../../common/enums';
 
 @Injectable()
 export class UserRepository implements UserRepositoryInterface {
@@ -11,11 +13,12 @@ export class UserRepository implements UserRepositoryInterface {
 
   async create(data: CreateUserDto): Promise<User> {
     const hashedPassword = await bcrypt.hash(data.password, 10);
-    
+
     return this.prisma.user.create({
       data: {
         ...data,
         password: hashedPassword,
+        role: data.role as PrismaUserRole,
       },
     });
   }
@@ -34,10 +37,14 @@ export class UserRepository implements UserRepositoryInterface {
   }
 
   async update(id: string, data: UpdateUserDto): Promise<User> {
-    const updateData = { ...data };
-    
+    const updateData: any = { ...data };
+
     if (data.password) {
       updateData.password = await bcrypt.hash(data.password, 10);
+    }
+
+    if (data.role) {
+      updateData.role = data.role as PrismaUserRole;
     }
 
     return this.prisma.user.update({
@@ -81,9 +88,9 @@ export class UserRepository implements UserRepositoryInterface {
     });
   }
 
-  async findByRole(role: string): Promise<User[]> {
+  async findByRole(role: UserRole): Promise<User[]> {
     return this.prisma.user.findMany({
-      where: { role: role as any },
+      where: { role: role as PrismaUserRole },
       orderBy: { createdAt: 'desc' },
     });
   }

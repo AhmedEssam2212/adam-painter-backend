@@ -6,8 +6,21 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Starting database seed...');
 
-  // Hash password for demo users
+  // Hash passwords
   const hashedPassword = await bcrypt.hash('password123', 10);
+  const adminPassword = await bcrypt.hash('admin123', 10);
+
+  // Create admin user
+  const admin = await prisma.user.upsert({
+    where: { email: 'admin@adampainter.com' },
+    update: {},
+    create: {
+      email: 'admin@adampainter.com',
+      password: adminPassword,
+      name: 'System Administrator',
+      role: UserRole.ADMIN,
+    },
+  });
 
   // Create demo painters
   const painter1 = await prisma.user.upsert({
@@ -86,9 +99,10 @@ async function main() {
 
   console.log('✅ Database seeded successfully!');
   console.log('Demo users created:');
+  console.log('Admin: admin@adampainter.com (password: admin123)');
   console.log('Painters: painter1@example.com, painter2@example.com');
   console.log('Customers: customer1@example.com, customer2@example.com');
-  console.log('Password for all: password123');
+  console.log('Password for painters/customers: password123');
 }
 
 main()

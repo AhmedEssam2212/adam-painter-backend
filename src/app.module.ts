@@ -12,11 +12,15 @@ import { PrismaService } from './common/services';
 import { GlobalExceptionFilter } from './common/filters';
 import { SuccessResponseInterceptor } from './common/interceptors';
 
+// Common module
+import { CommonModule } from './common/common.module';
+
 // Feature modules
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { AvailabilityModule } from './modules/availability/availability.module';
 import { BookingModule } from './modules/booking/booking.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -26,11 +30,15 @@ import { BookingModule } from './modules/booking/booking.module';
       load: [appConfig, databaseConfig, jwtConfig],
     }),
 
+    // Common module (must be imported first)
+    CommonModule,
+
     // Feature modules
     AuthModule,
     UsersModule,
     AvailabilityModule,
     BookingModule,
+    AdminModule,
   ],
   providers: [
     // Global services

@@ -1,15 +1,17 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { User } from '@prisma/client';
+
 import { UserRepository } from '../repositories';
 import { CreateUserDto, UpdateUserDto, UserResponseDto } from '../dto';
 import { UserRole } from '../../../common/enums';
 
+
 @Injectable()
 export class UserService {
-  constructor(private readonly userRepository: UserRepository) {}
+  constructor(
+    private readonly userRepository: UserRepository,
+  ) {}
 
   async create(createUserDto: CreateUserDto): Promise<UserResponseDto> {
-    // Check if user already exists
     const existingUser = await this.userRepository.findByEmail(createUserDto.email);
     if (existingUser) {
       throw new ConflictException('User with this email already exists');
@@ -19,8 +21,30 @@ export class UserService {
     return new UserResponseDto(user);
   }
 
-  async findAll(): Promise<UserResponseDto[]> {
-    const users = await this.userRepository.findAll();
+  async findAll(filters?: {
+    role?: UserRole;
+    email?: string;
+    search?: string;
+  }): Promise<UserResponseDto[]> {
+    let users: any[];
+
+    if (filters?.role) {
+      users = await this.userRepository.findByRole(filters.role);
+    } else if (filters?.email) {
+      const user = await this.userRepository.findByEmail(filters.email);
+      users = user ? [user] : [];
+    } else if (filters?.search) {
+      // Search by name or email
+      users = await this.userRepository.findMany({
+        OR: [
+          { name: { contains: filters.search, mode: 'insensitive' } },
+          { email: { contains: filters.search, mode: 'insensitive' } },
+        ],
+      });
+    } else {
+      users = await this.userRepository.findAll();
+    }
+
     return users.map(user => new UserResponseDto(user));
   }
 
@@ -32,18 +56,17 @@ export class UserService {
     return new UserResponseDto(user);
   }
 
-  async findByEmail(email: string): Promise<User | null> {
+  async findByEmail(email: string): Promise<any | null> {
     return this.userRepository.findByEmail(email);
   }
 
+  // Convenience methods for backward compatibility
   async findPainters(): Promise<UserResponseDto[]> {
-    const painters = await this.userRepository.findByRole(UserRole.PAINTER);
-    return painters.map(painter => new UserResponseDto(painter));
+    return this.findAll({ role: UserRole.PAINTER });
   }
 
   async findCustomers(): Promise<UserResponseDto[]> {
-    const customers = await this.userRepository.findByRole(UserRole.CUSTOMER);
-    return customers.map(customer => new UserResponseDto(customer));
+    return this.findAll({ role: UserRole.CUSTOMER });
   }
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<UserResponseDto> {
@@ -71,5 +94,31 @@ export class UserService {
     }
 
     await this.userRepository.delete(id);
+  }
+
+  async countByRole(role: UserRole): Promise<number> {
+    const users = await this.userRepository.findByRole(role);
+    return users.length;
+  }
+
+  // Additional methods required by IUserService interface
+  async count(filters?: any): Promise<number> {
+    if (filters?.role) {
+      return this.countByRole(filters.role);
+    }
+    const users = await this.userRepository.findAll();
+    return users.length;
+  }
+
+  async exists(criteria: any): Promise<boolean> {
+    if (criteria.email) {
+      const user = await this.userRepository.findByEmail(criteria.email);
+      return !!user;
+    }
+    if (criteria.id) {
+      const user = await this.userRepository.findById(criteria.id);
+      return !!user;
+    }
+    return false;
   }
 }
