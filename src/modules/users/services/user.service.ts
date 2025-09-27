@@ -34,13 +34,7 @@ export class UserService {
       const user = await this.userRepository.findByEmail(filters.email);
       users = user ? [user] : [];
     } else if (filters?.search) {
-      // Search by name or email
-      users = await this.userRepository.findMany({
-        OR: [
-          { name: { contains: filters.search, mode: 'insensitive' } },
-          { email: { contains: filters.search, mode: 'insensitive' } },
-        ],
-      });
+      users = await this.userRepository.searchUsers(filters.search);
     } else {
       users = await this.userRepository.findAll();
     }
@@ -60,7 +54,6 @@ export class UserService {
     return this.userRepository.findByEmail(email);
   }
 
-  // Convenience methods for backward compatibility
   async findPainters(): Promise<UserResponseDto[]> {
     return this.findAll({ role: UserRole.PAINTER });
   }
@@ -97,17 +90,12 @@ export class UserService {
   }
 
   async countByRole(role: UserRole): Promise<number> {
-    const users = await this.userRepository.findByRole(role);
-    return users.length;
+    return this.userRepository.count({ role });
   }
 
   // Additional methods required by IUserService interface
   async count(filters?: any): Promise<number> {
-    if (filters?.role) {
-      return this.countByRole(filters.role);
-    }
-    const users = await this.userRepository.findAll();
-    return users.length;
+    return this.userRepository.count(filters);
   }
 
   async exists(criteria: any): Promise<boolean> {

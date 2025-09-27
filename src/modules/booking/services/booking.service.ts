@@ -25,32 +25,24 @@ export class BookingService {
     createBookingRequestDto: CreateBookingRequestDto,
     user: UserResponseDto,
   ): Promise<BookingResponseDto> {
-    // Validate user permissions
     this.validationService.validateUserPermission(
       user.role,
       [UserRole.CUSTOMER],
       'create booking requests'
     );
 
-    // Validate time slot
     const startTime = new Date(createBookingRequestDto.startTime);
     const endTime = new Date(createBookingRequestDto.endTime);
 
-    this.validationService.validateTimeSlot({ startTime, endTime });
-    this.validationService.validateAdvanceNotice(startTime, 24);
-
-    // Find available painters for the requested time slot
     const availableSlots = await this.availabilityRepository.findAvailableSlots(startTime, endTime);
 
     if (availableSlots.length === 0) {
       throw new BadRequestException('No painters are available for the requested time slot.');
     }
 
-    // Simply select the first available painter (automatic assignment)
     const selectedSlot = availableSlots[0];
     const painterId = selectedSlot.painterId;
 
-    // Check for conflicting bookings for the selected painter
     const conflictingBookings = await this.bookingRepository.findConflictingBookings(
       painterId,
       startTime,
@@ -61,7 +53,6 @@ export class BookingService {
       throw new BadRequestException('Selected painter has conflicting bookings');
     }
 
-    // Create the booking
     const booking = await this.bookingRepository.create({
       ...createBookingRequestDto,
       customerId: user.id,
@@ -122,14 +113,12 @@ export class BookingService {
       throw new NotFoundException('Booking not found');
     }
 
-    // Check permissions
     const canUpdate = booking.customerId === user.id || booking.painterId === user.id;
 
     if (!canUpdate) {
       throw new ForbiddenException('You can only update your own bookings');
     }
 
-    // Validate time changes if provided
     if (updateBookingDto.startTime || updateBookingDto.endTime) {
       const startTime = updateBookingDto.startTime
         ? new Date(updateBookingDto.startTime)
@@ -218,7 +207,6 @@ export class BookingService {
       throw new NotFoundException('Booking not found');
     }
 
-    // Basic role-based validation
     if (user.role === UserRole.PAINTER && booking.painterId !== user.id) {
       throw new ForbiddenException('Painters can only update their own bookings');
     }
@@ -234,12 +222,10 @@ export class BookingService {
 
 
   async count(): Promise<number> {
-    const bookings = await this.bookingRepository.findAll();
-    return bookings.length;
+    return this.bookingRepository.count();
   }
 
   async countByStatus(status: BookingStatus): Promise<number> {
-    const bookings = await this.bookingRepository.findAll({ status });
-    return bookings.length;
+    return this.bookingRepository.count({ status });
   }
 }
