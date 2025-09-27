@@ -28,7 +28,6 @@ export class AdminController {
     private readonly bookingService: BookingService,
   ) {}
 
-  // User Management
   @Post('users')
   async createUser(@Body() createUserDto: CreateUserDto): Promise<UserResponseDto> {
     return this.userService.create(createUserDto);
@@ -43,7 +42,7 @@ export class AdminController {
     return this.userService.findAll({ role, search, email });
   }
 
-  // Keep backward compatibility endpoints
+
   @Get('users/painters')
   async getAllPainters(): Promise<UserResponseDto[]> {
     return this.userService.findPainters();
@@ -72,7 +71,6 @@ export class AdminController {
     return this.userService.delete(id);
   }
 
-  // Booking Management
   @Get('bookings')
   async getAllBookings(
     @Query('status') status?: BookingStatus,
@@ -82,7 +80,6 @@ export class AdminController {
     return this.bookingService.findAll({ status, customerId, painterId });
   }
 
-  // Keep backward compatibility endpoints
   @Get('bookings/pending')
   async getPendingBookings(): Promise<BookingResponseDto[]> {
     return this.bookingService.findByStatus(BookingStatus.PENDING);
@@ -112,7 +109,6 @@ export class AdminController {
     return this.bookingService.delete(id);
   }
 
-  // Availability Management
   @Get('availability')
   async getAllAvailability(
     @Query('painterId') painterId?: string,
@@ -129,7 +125,6 @@ export class AdminController {
     return this.availabilityService.findAll(filters);
   }
 
-  // Keep backward compatibility endpoint
   @Get('availability/painter/:painterId')
   async getPainterAvailability(
     @Param('painterId') painterId: string,

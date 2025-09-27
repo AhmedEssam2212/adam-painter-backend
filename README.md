@@ -420,70 +420,17 @@ class BookingBusinessRules {
 - ✅ Daylight saving time transitions
 - ✅ Cross-midnight bookings
 
-**Data Limits**
-- ✅ Maximum string lengths
-- ✅ Large dataset handling
-- ✅ Empty result sets
-- ✅ Null value handling
 
-**System Boundaries**
-- ✅ Maximum concurrent connections
-- ✅ Rate limiting effectiveness
-- ✅ Memory usage under load
-- ✅ Database connection pooling
 
-### 🔄 **Regression Tests**
 
-**Feature Stability**
-- ✅ Existing functionality after updates
-- ✅ Database migration safety
-- ✅ API backward compatibility
-- ✅ Configuration changes impact
 
-**Bug Prevention**
-- ✅ Previously fixed bugs don't reoccur
-- ✅ Known edge cases handled
-- ✅ Error scenarios properly managed
 
-### 🎯 **Testing Strategy & Implementation**
 
-**Test Pyramid Structure**
-```
-                    🔺 E2E Tests (Few)
-                   /                 \
-              🔺 Integration Tests (Some)
-             /                         \
-        🔺 Unit Tests (Many)
-```
 
-**Unit Tests (70%)**
-- **Services**: Business logic validation
-- **Controllers**: Request/response handling
-- **Repositories**: Data access patterns
-- **Utilities**: Helper functions and validators
-- **DTOs**: Data transformation and validation
 
-**Integration Tests (20%)**
-- **API Endpoints**: Full request-response cycle
-- **Database Operations**: CRUD operations with real DB
-- **Authentication Flow**: JWT generation and validation
-- **Business Workflows**: Multi-service interactions
-
-**End-to-End Tests (10%)**
-- **Complete User Journeys**: Registration to booking completion
-- **Cross-Role Scenarios**: Customer-painter interactions
-- **Admin Workflows**: Management and oversight operations
 
 **Test Implementation Commands**
 ```bash
-# Run all tests
-npm test
-
-# Run unit tests only
-npm run test:unit
-
-# Run integration tests
-npm run test:integration
 
 # Run e2e tests
 npm run test:e2e
@@ -495,40 +442,7 @@ npm run test:coverage
 npm run test:watch
 ```
 
-**Test Data Management**
-```typescript
-// Example test data factories
-class TestDataFactory {
-  static createCustomer(): CreateUserDto {
-    return {
-      email: `customer-${Date.now()}@test.com`,
-      password: 'Test123!',
-      name: 'Test Customer',
-      role: UserRole.CUSTOMER
-    };
-  }
 
-  static createPainter(): CreateUserDto {
-    return {
-      email: `painter-${Date.now()}@test.com`,
-      password: 'Test123!',
-      name: 'Test Painter',
-      role: UserRole.PAINTER
-    };
-  }
-
-  static createAvailability(painterId: string): CreateAvailabilityDto {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(9, 0, 0, 0);
-
-    return {
-      startTime: tomorrow.toISOString(),
-      endTime: new Date(tomorrow.getTime() + 4 * 60 * 60 * 1000).toISOString()
-    };
-  }
-}
-```
 
 **Mocking Strategy**
 - **External Services**: Mock third-party APIs
@@ -560,11 +474,7 @@ module.exports = {
 };
 ```
 
-**Continuous Testing**
-- **Pre-commit Hooks**: Run tests before commits
-- **CI/CD Pipeline**: Automated testing on pull requests
-- **Nightly Builds**: Full test suite execution
-- **Performance Monitoring**: Track test execution times
+
 
 ## 🚀 Quick Start
 
@@ -808,28 +718,6 @@ PATCH /bookings/:id/cancel
 Authorization: Bearer <jwt-token>
 ```
 
-## 🛠️ Development
-
-### Available Scripts
-```bash
-# Development
-npm run start:dev          # Start with hot reload
-npm run start:debug        # Start with debug mode
-
-# Production
-npm run build              # Build the application
-npm run start:prod         # Start production server
-
-# Database
-npm run prisma:generate    # Generate Prisma client
-npm run prisma:migrate     # Run database migrations
-npm run prisma:studio      # Open Prisma Studio (DB GUI)
-npm run prisma:seed        # Seed database with demo data
-
-# Code Quality
-npm run lint               # Run ESLint
-npm run format             # Format code with Prettier
-```
 
 ### Project Structure
 ```
@@ -862,41 +750,7 @@ src/
 ✅ **Time Validation**: Prevents past bookings and invalid time ranges
 ✅ **Role-based Authorization**: Different permissions for painters and customers
 
-## 🔄 Git Workflow Recommendations
 
-### Branching Strategy
-```bash
-main                    # Production-ready code
-├── develop            # Integration branch
-├── feature/auth       # Feature branches
-├── feature/booking    # Feature branches
-└── hotfix/bug-fix     # Emergency fixes
-```
-
-### Commit Message Convention
-```bash
-# Format: <type>(<scope>): <description>
-feat(auth): add JWT authentication system
-fix(booking): resolve painter assignment logic
-docs(readme): update API documentation
-refactor(availability): improve repository pattern
-test(booking): add unit tests for booking service
-```
-
-### Recommended Workflow
-```bash
-# 1. Create feature branch
-git checkout -b feature/new-feature
-
-# 2. Make changes and commit
-git add .
-git commit -m "feat(scope): description"
-
-# 3. Push and create PR
-git push origin feature/new-feature
-
-# 4. Merge to develop, then to main
-```
 
 ## Author 
 Ahmed Essam
