@@ -1,13 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { AvailabilityService } from '../services';
 import { CreateAvailabilityDto, UpdateAvailabilityDto, AvailabilityResponseDto } from '../dto';
 import { JwtAuthGuard, RolesGuard } from '../../auth/guards';
@@ -50,7 +41,7 @@ export class AvailabilityController {
   }
 
   @Patch(':id')
-  @Roles(UserRole.PAINTER)
+  @Roles(UserRole.PAINTER, UserRole.ADMIN)
   @UseGuards(RolesGuard)
   async update(
     @Param('id') id: string,
@@ -61,12 +52,9 @@ export class AvailabilityController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.PAINTER)
+  @Roles(UserRole.PAINTER, UserRole.ADMIN)
   @UseGuards(RolesGuard)
-  async remove(
-    @Param('id') id: string,
-    @CurrentUser() user: UserResponseDto,
-  ): Promise<void> {
+  async remove(@Param('id') id: string, @CurrentUser() user: UserResponseDto): Promise<void> {
     return this.availabilityService.delete(id, user);
   }
 }
