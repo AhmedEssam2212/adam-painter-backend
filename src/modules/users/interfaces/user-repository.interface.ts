@@ -5,4 +5,6 @@ import { CreateUserDto, UpdateUserDto } from '../dto';
 export interface UserRepositoryInterface extends GenericRepositoryInterface<User, CreateUserDto, UpdateUserDto> {
   findByEmail(email: string): Promise<User | null>;
   findByRole(role: string): Promise<User[]>;
+  searchUsers(searchTerm: string): Promise<User[]>;
+  verifyPassword(user: User, password: string): Promise<boolean>;
 }

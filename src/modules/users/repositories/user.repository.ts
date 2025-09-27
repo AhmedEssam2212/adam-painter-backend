@@ -94,4 +94,20 @@ export class UserRepository implements UserRepositoryInterface {
       orderBy: { createdAt: 'desc' },
     });
   }
+
+  async searchUsers(searchTerm: string): Promise<User[]> {
+    return this.prisma.user.findMany({
+      where: {
+        OR: [
+          { name: { contains: searchTerm, mode: 'insensitive' } },
+          { email: { contains: searchTerm, mode: 'insensitive' } },
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async verifyPassword(user: User, password: string): Promise<boolean> {
+    return bcrypt.compare(password, user.password);
+  }
 }

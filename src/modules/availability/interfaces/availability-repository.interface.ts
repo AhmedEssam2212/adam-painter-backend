@@ -6,4 +6,5 @@ export interface AvailabilityRepositoryInterface extends GenericRepositoryInterf
   findByPainterId(painterId: string): Promise<Availability[]>;
   findAvailableSlots(startTime: Date, endTime: Date): Promise<Availability[]>;
   findConflictingSlots(painterId: string, startTime: Date, endTime: Date, excludeId?: string): Promise<Availability[]>;
+  hasConflictingSlots(painterId: string, startTime: Date, endTime: Date, excludeId?: string): Promise<boolean>;
 }

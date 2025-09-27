@@ -126,4 +126,14 @@ export class AvailabilityRepository implements AvailabilityRepositoryInterface {
       where,
     });
   }
+
+  async hasConflictingSlots(
+    painterId: string,
+    startTime: Date,
+    endTime: Date,
+    excludeId?: string,
+  ): Promise<boolean> {
+    const conflictingSlots = await this.findConflictingSlots(painterId, startTime, endTime, excludeId);
+    return conflictingSlots.length > 0;
+  }
 }
