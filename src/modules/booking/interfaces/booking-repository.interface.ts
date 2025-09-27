@@ -8,4 +8,6 @@ export interface BookingRepositoryInterface extends GenericRepositoryInterface<B
   findConflictingBookings(painterId: string, startTime: Date, endTime: Date, excludeId?: string): Promise<Booking[]>;
   findWithDetails(id: string): Promise<Booking | null>;
   findAllWithDetails(): Promise<Booking[]>;
+  findPendingBookingsInTimeRange(startTime: Date, endTime: Date): Promise<Booking[]>;
+  assignPainterToBooking(bookingId: string, painterId: string, availabilityId: string): Promise<Booking>;
 }

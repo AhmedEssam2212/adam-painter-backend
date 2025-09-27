@@ -34,30 +34,36 @@ export class BookingService {
     const startTime = new Date(createBookingRequestDto.startTime);
     const endTime = new Date(createBookingRequestDto.endTime);
 
+    // Try to find available painters for immediate assignment
     const availableSlots = await this.availabilityRepository.findAvailableSlots(startTime, endTime);
 
-    if (availableSlots.length === 0) {
-      throw new BadRequestException('No painters are available for the requested time slot.');
+    let painterId: string | undefined;
+    let availabilityId: string | undefined;
+    let status = BookingStatus.PENDING;
+
+    if (availableSlots.length > 0) {
+      // Check for conflicts with the first available painter
+      const selectedSlot = availableSlots[0];
+      const conflictingBookings = await this.bookingRepository.findConflictingBookings(
+        selectedSlot.createdBy,
+        startTime,
+        endTime,
+      );
+
+      if (conflictingBookings.length === 0) {
+        // No conflicts, assign immediately
+        painterId = selectedSlot.createdBy;
+        availabilityId = selectedSlot.id;
+        status = BookingStatus.CONFIRMED;
+      }
     }
 
-    const selectedSlot = availableSlots[0];
-    const painterId = selectedSlot.painterId;
-
-    const conflictingBookings = await this.bookingRepository.findConflictingBookings(
-      painterId,
-      startTime,
-      endTime,
-    );
-
-    if (conflictingBookings.length > 0) {
-      throw new BadRequestException('Selected painter has conflicting bookings');
-    }
-
+    // Create booking (either assigned or pending)
     const booking = await this.bookingRepository.create({
       ...createBookingRequestDto,
-      customerId: user.id,
+      createdBy: user.id,
       painterId,
-      availabilityId: selectedSlot.id,
+      availabilityId,
     });
 
     return new BookingResponseDto(booking);
@@ -113,7 +119,7 @@ export class BookingService {
       throw new NotFoundException('Booking not found');
     }
 
-    const canUpdate = booking.customerId === user.id || booking.painterId === user.id;
+    const canUpdate = booking.createdBy === user.id || booking.painterId === user.id;
 
     if (!canUpdate) {
       throw new ForbiddenException('You can only update your own bookings');
@@ -161,7 +167,7 @@ export class BookingService {
     }
 
     // Check permissions
-    const canCancel = booking.customerId === user.id || booking.painterId === user.id;
+    const canCancel = booking.createdBy === user.id || booking.painterId === user.id;
 
     if (!canCancel) {
       throw new ForbiddenException('You can only cancel your own bookings');
@@ -185,7 +191,7 @@ export class BookingService {
     }
 
     // If user is provided, check permissions (for regular users)
-    if (user && booking.customerId !== user.id) {
+    if (user && booking.createdBy !== user.id) {
       throw new ForbiddenException('You can only delete your own bookings');
     }
 
@@ -211,7 +217,7 @@ export class BookingService {
       throw new ForbiddenException('Painters can only update their own bookings');
     }
 
-    if (user.role === UserRole.CUSTOMER && booking.customerId !== user.id) {
+    if (user.role === UserRole.CUSTOMER && booking.createdBy !== user.id) {
       throw new ForbiddenException('Customers can only update their own bookings');
     }
 
@@ -227,5 +233,44 @@ export class BookingService {
 
   async countByStatus(status: BookingStatus): Promise<number> {
     return this.bookingRepository.count({ status });
+  }
+
+  async assignPendingBookingsToAvailability(
+    painterId: string,
+    availabilityId: string,
+    startTime: Date,
+    endTime: Date,
+  ): Promise<BookingResponseDto[]> {
+    // Find pending bookings that overlap with the new availability
+    const pendingBookings = await this.bookingRepository.findPendingBookingsInTimeRange(startTime, endTime);
+
+    const assignedBookings: BookingResponseDto[] = [];
+
+    for (const booking of pendingBookings) {
+      const bookingStart = new Date(booking.startTime);
+      const bookingEnd = new Date(booking.endTime);
+
+      // Check if booking fits within the availability window
+      if (bookingStart >= startTime && bookingEnd <= endTime) {
+        // Check for conflicts with already assigned bookings for this painter
+        const conflictingBookings = await this.bookingRepository.findConflictingBookings(
+          painterId,
+          bookingStart,
+          bookingEnd,
+        );
+
+        if (conflictingBookings.length === 0) {
+          // No conflicts, assign the booking
+          const assignedBooking = await this.bookingRepository.assignPainterToBooking(
+            booking.id,
+            painterId,
+            availabilityId,
+          );
+          assignedBookings.push(new BookingResponseDto(assignedBooking));
+        }
+      }
+    }
+
+    return assignedBookings;
   }
 }

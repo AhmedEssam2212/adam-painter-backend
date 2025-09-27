@@ -8,10 +8,10 @@ import { CreateBookingRequestDto, UpdateBookingDto } from '../dto';
 export class BookingRepository implements BookingRepositoryInterface {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: CreateBookingRequestDto & { customerId: string; painterId?: string; availabilityId?: string }): Promise<Booking> {
+  async create(data: CreateBookingRequestDto & { createdBy: string; painterId?: string; availabilityId?: string }): Promise<Booking> {
     return this.prisma.booking.create({
       data: {
-        customerId: data.customerId,
+        createdBy: data.createdBy,
         painterId: data.painterId,
         availabilityId: data.availabilityId,
         startTime: new Date(data.startTime),
@@ -19,9 +19,13 @@ export class BookingRepository implements BookingRepositoryInterface {
         status: data.painterId ? BookingStatus.CONFIRMED : BookingStatus.PENDING,
       },
       include: {
-        customer: true,
+        creator: true,
         painter: true,
-        availability: true,
+        availability: {
+          include: {
+            creator: true,
+          },
+        },
       },
     });
   }
@@ -29,6 +33,10 @@ export class BookingRepository implements BookingRepositoryInterface {
   async findById(id: string): Promise<Booking | null> {
     return this.prisma.booking.findUnique({
       where: { id },
+      include: {
+        painter: true,
+        availability: true,
+      },
     });
   }
 
@@ -36,7 +44,6 @@ export class BookingRepository implements BookingRepositoryInterface {
     return this.prisma.booking.findUnique({
       where: { id },
       include: {
-        customer: true,
         painter: true,
         availability: true,
       },
@@ -53,7 +60,6 @@ export class BookingRepository implements BookingRepositoryInterface {
   async findAllWithDetails(): Promise<Booking[]> {
     return this.prisma.booking.findMany({
       include: {
-        customer: true,
         painter: true,
         availability: true,
       },
@@ -80,7 +86,6 @@ export class BookingRepository implements BookingRepositoryInterface {
       where: { id },
       data: updateData,
       include: {
-        customer: true,
         painter: true,
         availability: true,
       },
@@ -119,7 +124,9 @@ export class BookingRepository implements BookingRepositoryInterface {
 
   async findByCustomerId(customerId: string): Promise<Booking[]> {
     return this.prisma.booking.findMany({
-      where: { customerId },
+      where: {
+        createdBy: customerId
+      },
       include: {
         painter: true,
         availability: true,
@@ -132,7 +139,6 @@ export class BookingRepository implements BookingRepositoryInterface {
     return this.prisma.booking.findMany({
       where: { painterId },
       include: {
-        customer: true,
         availability: true,
       },
       orderBy: { createdAt: 'desc' },
@@ -166,6 +172,49 @@ export class BookingRepository implements BookingRepositoryInterface {
 
     return this.prisma.booking.findMany({
       where,
+    });
+  }
+
+  async findPendingBookingsInTimeRange(
+    startTime: Date,
+    endTime: Date,
+  ): Promise<Booking[]> {
+    return this.prisma.booking.findMany({
+      where: {
+        status: BookingStatus.PENDING,
+        painterId: null, // Unassigned bookings
+        OR: [
+          {
+            AND: [
+              { startTime: { lt: endTime } },
+              { endTime: { gt: startTime } },
+            ],
+          },
+        ],
+      },
+      include: {
+        painter: true,
+      },
+      orderBy: { createdAt: 'asc' }, // First come, first served
+    });
+  }
+
+  async assignPainterToBooking(
+    bookingId: string,
+    painterId: string,
+    availabilityId: string,
+  ): Promise<Booking> {
+    return this.prisma.booking.update({
+      where: { id: bookingId },
+      data: {
+        painterId,
+        availabilityId,
+        status: BookingStatus.CONFIRMED,
+      },
+      include: {
+        painter: true,
+        availability: true,
+      },
     });
   }
 }

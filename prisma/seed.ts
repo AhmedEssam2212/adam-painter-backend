@@ -80,17 +80,17 @@ async function main() {
   await prisma.availability.createMany({
     data: [
       {
-        painterId: painter1.id,
+        createdBy: painter1.id,
         startTime: new Date(tomorrow.getTime()),
         endTime: new Date(tomorrow.getTime() + 4 * 60 * 60 * 1000), // 4 hours
       },
       {
-        painterId: painter1.id,
+        createdBy: painter1.id,
         startTime: new Date(dayAfter.getTime()),
         endTime: new Date(dayAfter.getTime() + 6 * 60 * 60 * 1000), // 6 hours
       },
       {
-        painterId: painter2.id,
+        createdBy: painter2.id,
         startTime: new Date(tomorrow.getTime() + 2 * 60 * 60 * 1000), // 2 hours later
         endTime: new Date(tomorrow.getTime() + 8 * 60 * 60 * 1000), // 6 hours duration
       },

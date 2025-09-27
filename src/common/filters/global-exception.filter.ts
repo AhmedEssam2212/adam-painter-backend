@@ -26,16 +26,18 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
 
+    // Handle different types of exceptions
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
-
+      
       if (typeof exceptionResponse === 'string') {
         message = exceptionResponse;
       } else if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
         message = (exceptionResponse as any).message || exception.message;
       }
     } else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
+      // Handle Prisma database errors
       const { code, meta } = exception;
       status = HttpStatus.BAD_REQUEST;
 
@@ -66,13 +68,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       message = exception.message;
     }
 
+    // Log the error
     this.logger.error(
       `${request.method} ${request.url} - ${status} - ${message}`,
       exception instanceof Error ? exception.stack : exception,
     );
 
+    // Send standardized error response
     const errorResponse = ApiResponseDto.error(message, request.url);
-
+    
     response.status(status).json(errorResponse);
   }
 }

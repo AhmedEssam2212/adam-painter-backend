@@ -104,7 +104,7 @@ describe('Booking Flow E2E', () => {
         .expect(201);
 
       expect(availabilityResponse.body.success).toBe(true);
-      expect(availabilityResponse.body.data.painterId).toBe(painterId);
+      expect(availabilityResponse.body.data.createdBy).toBe(painterId);
 
       // Step 4: Customer creates booking request (automatic painter assignment)
       const bookingStart = new Date(tomorrow);
@@ -311,7 +311,7 @@ describe('Booking Flow E2E', () => {
       expect(bookingResponse.body.data.painter.name).toBe('Weekend Painter');
     });
 
-    it('should reject booking when no painters are available', async () => {
+    it('should create pending booking when no painters are available', async () => {
       // Register customer only (no painters)
       const customerResponse = await request(app.getHttpServer())
         .post('/api/auth/register')
@@ -340,10 +340,11 @@ describe('Booking Flow E2E', () => {
           startTime: tomorrow.toISOString(),
           endTime: endTime.toISOString()
         })
-        .expect(400);
+        .expect(201);
 
-      expect(bookingResponse.body.success).toBe(false);
-      expect(bookingResponse.body.message).toContain('No painters are available');
+      expect(bookingResponse.body.success).toBe(true);
+      expect(bookingResponse.body.data.status).toBe('PENDING');
+      expect(bookingResponse.body.data.painter).toBeUndefined();
     });
   });
 });

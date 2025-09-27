@@ -51,22 +51,30 @@ A simplified scheduling system where painters can define available time slots an
 - **Future**: Configurable weekend/holiday policies
 
 **🔄 Booking Status Flow**
-- **Current**: Simplified 3-status system (PENDING → CONFIRMED → CANCELLED)
+- **Current**: Simplified 3-status system with automatic assignment (PENDING → CONFIRMED → CANCELLED)
 - **Flow**:
-  - **PENDING**: Initial status when booking is created
-  - **CONFIRMED**: After painter approval (manual or automatic)
+  - **PENDING**: Initial status when booking is created without available painter
+  - **CONFIRMED**: Automatically assigned when painter becomes available OR immediately if painter is available
   - **CANCELLED**: When either party cancels the booking
-- **Assumption**: Keep status management minimal for MVP
+- **Smart Assignment Logic**:
+  - **Immediate Assignment**: If painter is available during booking creation → CONFIRMED
+  - **Deferred Assignment**: If no painter available → PENDING, auto-assigned when painter creates availability
+  - **First-Come-First-Served**: Pending bookings assigned in creation order
+  - **Conflict Prevention**: System prevents double-booking automatically
+- **Assumption**: Keep status management minimal for MVP while enabling flexible booking
 - **Rationale**:
-  - **Simplicity**: Easy to understand and implement
+  - **Customer Convenience**: Can book even without immediate painter availability
+  - **Painter Flexibility**: Availability creation automatically fulfills pending requests
+  - **System Efficiency**: Reduces manual coordination and booking failures
   - **Clear States**: No ambiguous intermediate states
-  - **Flexible**: Can be extended without breaking existing logic
+  - **Scalable**: Works with any number of painters and bookings
 - **Future Enhancements**:
   - **Cancellation Rules**: 24-hour cancellation policy enforcement
   - **Advanced Statuses**: IN_PROGRESS, COMPLETED, RESCHEDULED, NO_SHOW
   - **Order Tracking**: Real-time progress updates (out of scope)
   - **Factory Pattern**: Status transition management with business rules
   - **Approval Workflow**: Multi-step painter confirmation process
+  - **Priority Booking**: Premium customers get priority assignment
 
 ### 🌍 Regional Compliance & Extensibility
 

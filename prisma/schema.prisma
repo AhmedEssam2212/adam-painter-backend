@@ -35,9 +35,9 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Relations
-  availabilities Availability[] // Only for painters
-  bookings       Booking[]      // Bookings as customer
-  assignedJobs   Booking[]      @relation("PainterBookings") // Bookings as assigned painter
+  assignedJobs       Booking[]      @relation("PainterBookings") // Bookings assigned to this painter
+  createdAvailabilities Availability[] @relation("CreatedAvailabilities") // Availabilities created by this user
+  createdBookings    Booking[]      @relation("CreatedBookings") // Bookings created by this user
 
   @@map("users")
 }
@@ -45,18 +45,18 @@ model User {
 // Availability slots defined by painters
 model Availability {
   id        String   @id @default(uuid())
-  painterId String
+  createdBy String   // User who created this availability (must be PAINTER or ADMIN)
   startTime DateTime
   endTime   DateTime
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  painter  User      @relation(fields: [painterId], references: [id], onDelete: Cascade)
-  bookings Booking[] // Bookings that use this availability
+  creator   User      @relation("CreatedAvailabilities", fields: [createdBy], references: [id], onDelete: Cascade)
+  bookings  Booking[] // Bookings that use this availability
 
   // Constraints
-  @@index([painterId])
+  @@index([createdBy])
   @@index([startTime, endTime])
   @@map("availabilities")
 }
@@ -64,9 +64,9 @@ model Availability {
 // Booking requests and assignments
 model Booking {
   id             String        @id @default(uuid())
-  customerId     String
   painterId      String?       // Assigned painter (nullable until assigned)
   availabilityId String?       // Reference to the availability slot used
+  createdBy      String        // User who created this booking (must be CUSTOMER or ADMIN)
   startTime      DateTime
   endTime        DateTime
   status         BookingStatus @default(PENDING)
@@ -74,13 +74,13 @@ model Booking {
   updatedAt      DateTime      @updatedAt
 
   // Relations
-  customer     User          @relation(fields: [customerId], references: [id], onDelete: Cascade)
   painter      User?         @relation("PainterBookings", fields: [painterId], references: [id], onDelete: SetNull)
+  creator      User          @relation("CreatedBookings", fields: [createdBy], references: [id], onDelete: Cascade)
   availability Availability? @relation(fields: [availabilityId], references: [id], onDelete: SetNull)
 
   // Constraints
-  @@index([customerId])
   @@index([painterId])
+  @@index([createdBy])
   @@index([startTime, endTime])
   @@index([status])
   @@map("bookings")

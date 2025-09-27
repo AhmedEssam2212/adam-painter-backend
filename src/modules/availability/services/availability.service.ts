@@ -9,12 +9,14 @@ import { CreateAvailabilityDto, UpdateAvailabilityDto, AvailabilityResponseDto }
 import { UserRole } from '../../../common/enums';
 import { UserResponseDto } from '../../users/dto';
 import { ValidationService } from '../../../common/services/validation.service';
+import { BookingRepository } from '../../booking/repositories';
 
 @Injectable()
 export class AvailabilityService {
   constructor(
     private readonly availabilityRepository: AvailabilityRepository,
     private readonly validationService: ValidationService,
+    private readonly bookingRepository: BookingRepository,
   ) {}
 
   async create(
@@ -42,8 +44,16 @@ export class AvailabilityService {
 
     const availability = await this.availabilityRepository.create({
       ...createAvailabilityDto,
-      painterId: user.id,
+      createdBy: user.id,
     });
+
+    // Try to assign pending bookings to this new availability
+    await this.assignPendingBookingsToAvailability(
+      user.id,
+      availability.id,
+      startTime,
+      endTime,
+    );
 
     return new AvailabilityResponseDto(availability);
   }
@@ -75,7 +85,7 @@ export class AvailabilityService {
       throw new NotFoundException('Availability slot not found');
     }
 
-    if (availability.painterId !== user.id) {
+    if (availability.createdBy !== user.id) {
       throw new ForbiddenException('You can only update your own availability slots');
     }
 
@@ -109,7 +119,7 @@ export class AvailabilityService {
       throw new NotFoundException('Availability slot not found');
     }
 
-    if (user && availability.painterId !== user.id) {
+    if (user && availability.createdBy !== user.id) {
       throw new ForbiddenException('You can only delete your own availability slots');
     }
 
@@ -144,5 +154,39 @@ export class AvailabilityService {
 
   async findAvailableSlots(startTime: Date, endTime: Date): Promise<AvailabilityResponseDto[]> {
     return this.findAll({ startTime, endTime });
+  }
+
+  private async assignPendingBookingsToAvailability(
+    painterId: string,
+    availabilityId: string,
+    startTime: Date,
+    endTime: Date,
+  ): Promise<void> {
+    // Find pending bookings that overlap with the new availability
+    const pendingBookings = await this.bookingRepository.findPendingBookingsInTimeRange(startTime, endTime);
+
+    for (const booking of pendingBookings) {
+      const bookingStart = new Date(booking.startTime);
+      const bookingEnd = new Date(booking.endTime);
+
+      // Check if booking fits within the availability window
+      if (bookingStart >= startTime && bookingEnd <= endTime) {
+        // Check for conflicts with already assigned bookings for this painter
+        const conflictingBookings = await this.bookingRepository.findConflictingBookings(
+          painterId,
+          bookingStart,
+          bookingEnd,
+        );
+
+        if (conflictingBookings.length === 0) {
+          // No conflicts, assign the booking
+          await this.bookingRepository.assignPainterToBooking(
+            booking.id,
+            painterId,
+            availabilityId,
+          );
+        }
+      }
+    }
   }
 }

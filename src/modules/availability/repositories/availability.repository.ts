@@ -8,12 +8,15 @@ import { CreateAvailabilityDto, UpdateAvailabilityDto } from '../dto';
 export class AvailabilityRepository implements AvailabilityRepositoryInterface {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: CreateAvailabilityDto & { painterId: string }): Promise<Availability> {
+  async create(data: CreateAvailabilityDto & { createdBy: string }): Promise<Availability> {
     return this.prisma.availability.create({
       data: {
-        painterId: data.painterId,
+        createdBy: data.createdBy,
         startTime: new Date(data.startTime),
         endTime: new Date(data.endTime),
+      },
+      include: {
+        creator: true,
       },
     });
   }
@@ -21,12 +24,18 @@ export class AvailabilityRepository implements AvailabilityRepositoryInterface {
   async findById(id: string): Promise<Availability | null> {
     return this.prisma.availability.findUnique({
       where: { id },
+      include: {
+        creator: true,
+      },
     });
   }
 
   async findAll(filter?: any): Promise<Availability[]> {
     return this.prisma.availability.findMany({
       where: filter,
+      include: {
+        creator: true,
+      },
       orderBy: { startTime: 'asc' },
     });
   }
@@ -80,7 +89,15 @@ export class AvailabilityRepository implements AvailabilityRepositoryInterface {
 
   async findByPainterId(painterId: string): Promise<Availability[]> {
     return this.prisma.availability.findMany({
-      where: { painterId },
+      where: {
+        createdBy: painterId,
+        creator: {
+          role: { in: ['PAINTER', 'ADMIN'] }
+        }
+      },
+      include: {
+        creator: true,
+      },
       orderBy: { startTime: 'asc' },
     });
   }
@@ -92,9 +109,12 @@ export class AvailabilityRepository implements AvailabilityRepositoryInterface {
           { startTime: { lte: startTime } },
           { endTime: { gte: endTime } },
         ],
+        creator: {
+          role: { in: ['PAINTER', 'ADMIN'] }
+        }
       },
       include: {
-        painter: true,
+        creator: true,
       },
       orderBy: { startTime: 'asc' },
     });
@@ -107,7 +127,7 @@ export class AvailabilityRepository implements AvailabilityRepositoryInterface {
     excludeId?: string,
   ): Promise<Availability[]> {
     const where: any = {
-      painterId,
+      createdBy: painterId,
       OR: [
         {
           AND: [
