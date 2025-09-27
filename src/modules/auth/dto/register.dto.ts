@@ -1,13 +1,14 @@
-import { IsEmail, IsString, IsEnum, MinLength, IsNotEmpty } from 'class-validator';
+import { IsEmail, IsString, IsEnum, IsNotEmpty } from 'class-validator';
 import { UserRole } from '../../../common/enums';
+import { IsStrongPassword } from '../../../common/decorators';
 
 export class RegisterDto {
-  @IsEmail()
+  @IsEmail({}, { message: 'Please provide a valid email address' })
   @IsNotEmpty()
   email: string;
 
   @IsString()
-  @MinLength(6)
+  @IsStrongPassword()
   @IsNotEmpty()
   password: string;
 

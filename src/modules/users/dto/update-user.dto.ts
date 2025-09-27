@@ -1,13 +1,14 @@
-import { IsEmail, IsString, IsEnum, MinLength, IsOptional } from 'class-validator';
+import { IsEmail, IsString, IsEnum, IsOptional } from 'class-validator';
 import { UserRole } from '../../../common/enums';
+import { IsStrongPassword } from '../../../common/decorators';
 
 export class UpdateUserDto {
-  @IsEmail()
+  @IsEmail({}, { message: 'Please provide a valid email address' })
   @IsOptional()
   email?: string;
 
   @IsString()
-  @MinLength(6)
+  @IsStrongPassword()
   @IsOptional()
   password?: string;
 
