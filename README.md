@@ -618,12 +618,46 @@ Content-Type: application/json
   "message": "Operation successful",
   "data": {
     "id": "uuid",
-    "painterId": "uuid",
+    "createdBy": "uuid",
+    "creator": {
+      "id": "uuid",
+      "name": "John Painter",
+      "role": "PAINTER"
+    },
     "startTime": "2025-05-18T10:00:00Z",
     "endTime": "2025-05-18T14:00:00Z",
     "createdAt": "2025-05-18T09:00:00Z",
     "updatedAt": "2025-05-18T09:00:00Z"
   }
+}
+```
+
+#### Get All Availabilities
+```http
+GET /availability
+Authorization: Bearer <jwt-token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Operation successful",
+  "data": [
+    {
+      "id": "uuid",
+      "createdBy": "uuid",
+      "creator": {
+        "id": "uuid",
+        "name": "John Painter",
+        "role": "PAINTER"
+      },
+      "startTime": "2025-05-18T10:00:00Z",
+      "endTime": "2025-05-18T14:00:00Z",
+      "createdAt": "2025-05-18T09:00:00Z",
+      "updatedAt": "2025-05-18T09:00:00Z"
+    }
+  ]
 }
 ```
 
@@ -641,7 +675,12 @@ Authorization: Bearer <painter-jwt-token>
   "data": [
     {
       "id": "uuid",
-      "painterId": "uuid",
+      "createdBy": "uuid",
+      "creator": {
+        "id": "uuid",
+        "name": "John Painter",
+        "role": "PAINTER"
+      },
       "startTime": "2025-05-18T10:00:00Z",
       "endTime": "2025-05-18T14:00:00Z",
       "createdAt": "2025-05-18T09:00:00Z",
@@ -665,13 +704,19 @@ Content-Type: application/json
 }
 ```
 
-**Success Response:**
+**Success Response (Immediate Assignment):**
 ```json
 {
   "success": true,
   "message": "Operation successful",
   "data": {
     "bookingId": "uuid",
+    "createdBy": "uuid",
+    "customer": {
+      "id": "uuid",
+      "name": "John Customer",
+      "role": "CUSTOMER"
+    },
     "painter": {
       "id": "uuid",
       "name": "Best Painter"
@@ -679,6 +724,29 @@ Content-Type: application/json
     "startTime": "2025-05-18T11:00:00Z",
     "endTime": "2025-05-18T13:00:00Z",
     "status": "CONFIRMED",
+    "createdAt": "2025-05-18T10:00:00Z",
+    "updatedAt": "2025-05-18T10:00:00Z"
+  }
+}
+```
+
+**Success Response (Pending Assignment):**
+```json
+{
+  "success": true,
+  "message": "Operation successful",
+  "data": {
+    "bookingId": "uuid",
+    "createdBy": "uuid",
+    "customer": {
+      "id": "uuid",
+      "name": "John Customer",
+      "role": "CUSTOMER"
+    },
+    "painter": null,
+    "startTime": "2025-05-18T11:00:00Z",
+    "endTime": "2025-05-18T13:00:00Z",
+    "status": "PENDING",
     "createdAt": "2025-05-18T10:00:00Z",
     "updatedAt": "2025-05-18T10:00:00Z"
   }
@@ -699,6 +767,34 @@ Content-Type: application/json
 ```http
 GET /bookings/me
 Authorization: Bearer <jwt-token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Operation successful",
+  "data": [
+    {
+      "bookingId": "uuid",
+      "createdBy": "uuid",
+      "customer": {
+        "id": "uuid",
+        "name": "John Customer",
+        "role": "CUSTOMER"
+      },
+      "painter": {
+        "id": "uuid",
+        "name": "Best Painter"
+      },
+      "startTime": "2025-05-18T11:00:00Z",
+      "endTime": "2025-05-18T13:00:00Z",
+      "status": "CONFIRMED",
+      "createdAt": "2025-05-18T10:00:00Z",
+      "updatedAt": "2025-05-18T10:00:00Z"
+    }
+  ]
+}
 ```
 
 ### Additional Endpoints

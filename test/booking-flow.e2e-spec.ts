@@ -346,5 +346,290 @@ describe('Booking Flow E2E', () => {
       expect(bookingResponse.body.data.status).toBe('PENDING');
       expect(bookingResponse.body.data.painter).toBeUndefined();
     });
+
+    it('should automatically assign pending booking when painter creates matching availability', async () => {
+      // Step 1: Register customer
+      const customerResponse = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email: getUniqueEmail('customer'),
+          password: 'StrongPass123!',
+          name: 'Test Customer',
+          role: 'CUSTOMER'
+        })
+        .expect(201);
+
+      const customerToken = customerResponse.body.data.accessToken;
+
+      // Step 2: Customer creates booking request when no painters are available
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(10, 0, 0, 0);
+
+      const endTime = new Date(tomorrow);
+      endTime.setHours(14, 0, 0, 0);
+
+      const bookingResponse = await request(app.getHttpServer())
+        .post('/api/booking-request')
+        .set('Authorization', `Bearer ${customerToken}`)
+        .send({
+          startTime: tomorrow.toISOString(),
+          endTime: endTime.toISOString()
+        })
+        .expect(201);
+
+      expect(bookingResponse.body.success).toBe(true);
+      expect(bookingResponse.body.data.status).toBe('PENDING');
+      expect(bookingResponse.body.data.painter).toBeUndefined();
+
+      const bookingId = bookingResponse.body.data.bookingId;
+
+      // Step 3: Register painter
+      const painterResponse = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email: getUniqueEmail('painter'),
+          password: 'StrongPass123!',
+          name: 'Test Painter',
+          role: 'PAINTER'
+        })
+        .expect(201);
+
+      const painterToken = painterResponse.body.data.accessToken;
+
+      // Step 4: Painter creates availability that covers the pending booking
+      const availabilityStart = new Date(tomorrow);
+      availabilityStart.setHours(9, 0, 0, 0); // 9 AM
+
+      const availabilityEnd = new Date(tomorrow);
+      availabilityEnd.setHours(17, 0, 0, 0); // 5 PM
+
+      const availabilityResponse = await request(app.getHttpServer())
+        .post('/api/availability')
+        .set('Authorization', `Bearer ${painterToken}`)
+        .send({
+          startTime: availabilityStart.toISOString(),
+          endTime: availabilityEnd.toISOString()
+        })
+        .expect(201);
+
+      expect(availabilityResponse.body.success).toBe(true);
+
+      // Step 5: Check that the booking is now automatically assigned
+      const updatedBookingResponse = await request(app.getHttpServer())
+        .get(`/api/bookings/${bookingId}`)
+        .set('Authorization', `Bearer ${customerToken}`)
+        .expect(200);
+
+      expect(updatedBookingResponse.body.success).toBe(true);
+      expect(updatedBookingResponse.body.data.status).toBe('CONFIRMED');
+      expect(updatedBookingResponse.body.data.painter).toBeDefined();
+      expect(updatedBookingResponse.body.data.painter.id).toBe(painterResponse.body.data.user.id);
+    });
+
+    it('should handle multiple pending bookings with first-come-first-served assignment', async () => {
+      // Step 1: Register customers
+      const customer1Response = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email: getUniqueEmail('customer1'),
+          password: 'StrongPass123!',
+          name: 'Customer One',
+          role: 'CUSTOMER'
+        })
+        .expect(201);
+
+      const customer2Response = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email: getUniqueEmail('customer2'),
+          password: 'StrongPass123!',
+          name: 'Customer Two',
+          role: 'CUSTOMER'
+        })
+        .expect(201);
+
+      const customer1Token = customer1Response.body.data.accessToken;
+      const customer2Token = customer2Response.body.data.accessToken;
+
+      // Step 2: Both customers create overlapping booking requests
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(10, 0, 0, 0);
+
+      const endTime = new Date(tomorrow);
+      endTime.setHours(12, 0, 0, 0);
+
+      // First booking (should get priority)
+      const booking1Response = await request(app.getHttpServer())
+        .post('/api/booking-request')
+        .set('Authorization', `Bearer ${customer1Token}`)
+        .send({
+          startTime: tomorrow.toISOString(),
+          endTime: endTime.toISOString()
+        })
+        .expect(201);
+
+      expect(booking1Response.body.data.status).toBe('PENDING');
+      const booking1Id = booking1Response.body.data.bookingId;
+
+      // Small delay to ensure different creation times
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Second booking (should remain pending)
+      const booking2Response = await request(app.getHttpServer())
+        .post('/api/booking-request')
+        .set('Authorization', `Bearer ${customer2Token}`)
+        .send({
+          startTime: tomorrow.toISOString(),
+          endTime: endTime.toISOString()
+        })
+        .expect(201);
+
+      expect(booking2Response.body.data.status).toBe('PENDING');
+      const booking2Id = booking2Response.body.data.bookingId;
+
+      // Step 3: Register painter and create availability
+      const painterResponse = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email: getUniqueEmail('painter'),
+          password: 'StrongPass123!',
+          name: 'Test Painter',
+          role: 'PAINTER'
+        })
+        .expect(201);
+
+      const painterToken = painterResponse.body.data.accessToken;
+
+      // Create availability that can only accommodate one booking
+      const availabilityResponse = await request(app.getHttpServer())
+        .post('/api/availability')
+        .set('Authorization', `Bearer ${painterToken}`)
+        .send({
+          startTime: tomorrow.toISOString(),
+          endTime: endTime.toISOString()
+        })
+        .expect(201);
+
+      expect(availabilityResponse.body.success).toBe(true);
+
+      // Step 4: Check that only the first booking is assigned
+      const updatedBooking1Response = await request(app.getHttpServer())
+        .get(`/api/bookings/${booking1Id}`)
+        .set('Authorization', `Bearer ${customer1Token}`)
+        .expect(200);
+
+      expect(updatedBooking1Response.body.data.status).toBe('CONFIRMED');
+      expect(updatedBooking1Response.body.data.painter).toBeDefined();
+
+      const updatedBooking2Response = await request(app.getHttpServer())
+        .get(`/api/bookings/${booking2Id}`)
+        .set('Authorization', `Bearer ${customer2Token}`)
+        .expect(200);
+
+      expect(updatedBooking2Response.body.data.status).toBe('PENDING');
+      expect(updatedBooking2Response.body.data.painter).toBeUndefined();
+    });
+
+    it('should assign pending booking to the first available painter when multiple painters create availability', async () => {
+      // Step 1: Register customer
+      const customerResponse = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email: getUniqueEmail('customer'),
+          password: 'StrongPass123!',
+          name: 'Test Customer',
+          role: 'CUSTOMER'
+        })
+        .expect(201);
+
+      const customerToken = customerResponse.body.data.accessToken;
+
+      // Step 2: Create pending booking
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(10, 0, 0, 0);
+
+      const endTime = new Date(tomorrow);
+      endTime.setHours(14, 0, 0, 0);
+
+      const bookingResponse = await request(app.getHttpServer())
+        .post('/api/booking-request')
+        .set('Authorization', `Bearer ${customerToken}`)
+        .send({
+          startTime: tomorrow.toISOString(),
+          endTime: endTime.toISOString()
+        })
+        .expect(201);
+
+      expect(bookingResponse.body.data.status).toBe('PENDING');
+      const bookingId = bookingResponse.body.data.bookingId;
+
+      // Step 3: Register first painter and create availability
+      const painter1Response = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email: getUniqueEmail('painter1'),
+          password: 'StrongPass123!',
+          name: 'First Painter',
+          role: 'PAINTER'
+        })
+        .expect(201);
+
+      const painter1Token = painter1Response.body.data.accessToken;
+      const painter1Id = painter1Response.body.data.user.id;
+
+      const availability1Response = await request(app.getHttpServer())
+        .post('/api/availability')
+        .set('Authorization', `Bearer ${painter1Token}`)
+        .send({
+          startTime: tomorrow.toISOString(),
+          endTime: endTime.toISOString()
+        })
+        .expect(201);
+
+      expect(availability1Response.body.success).toBe(true);
+
+      // Step 4: Check that booking is assigned to first painter
+      const updatedBookingResponse = await request(app.getHttpServer())
+        .get(`/api/bookings/${bookingId}`)
+        .set('Authorization', `Bearer ${customerToken}`)
+        .expect(200);
+
+      expect(updatedBookingResponse.body.data.status).toBe('CONFIRMED');
+      expect(updatedBookingResponse.body.data.painter.id).toBe(painter1Id);
+
+      // Step 5: Register second painter and create availability (should not affect existing assignment)
+      const painter2Response = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email: getUniqueEmail('painter2'),
+          password: 'StrongPass123!',
+          name: 'Second Painter',
+          role: 'PAINTER'
+        })
+        .expect(201);
+
+      const painter2Token = painter2Response.body.data.accessToken;
+
+      await request(app.getHttpServer())
+        .post('/api/availability')
+        .set('Authorization', `Bearer ${painter2Token}`)
+        .send({
+          startTime: tomorrow.toISOString(),
+          endTime: endTime.toISOString()
+        })
+        .expect(201);
+
+      // Step 6: Verify booking is still assigned to first painter
+      const finalBookingResponse = await request(app.getHttpServer())
+        .get(`/api/bookings/${bookingId}`)
+        .set('Authorization', `Bearer ${customerToken}`)
+        .expect(200);
+
+      expect(finalBookingResponse.body.data.status).toBe('CONFIRMED');
+      expect(finalBookingResponse.body.data.painter.id).toBe(painter1Id);
+    });
   });
 });

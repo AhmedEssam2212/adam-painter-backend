@@ -402,6 +402,38 @@
 					}
 				},
 				{
+					"name": "Get All Availabilities",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    console.log('✅ All availabilities retrieved successfully');",
+									"    console.log('📅 Total availabilities:', response.data.length);",
+									"    if (response.data.length > 0) {",
+									"        console.log('👤 First availability creator:', response.data[0].creator?.name);",
+									"        console.log('📅 Time slot:', response.data[0].startTime, 'to', response.data[0].endTime);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/availability",
+							"host": ["{{base_url}}"],
+							"path": ["availability"]
+						},
+						"description": "Get all availability slots with creator information. Returns availability slots from all painters with their full creator details including name and role."
+					}
+				},
+				{
 					"name": "Get My Availability (Painter Only)",
 					"request": {
 						"method": "GET",
@@ -476,11 +508,13 @@
 								"exec": [
 									"if (pm.response.code === 201) {",
 									"    const response = pm.response.json();",
-									"    pm.collectionVariables.set('booking_id', response.data.id);",
+									"    pm.collectionVariables.set('booking_id', response.data.bookingId);",
 									"    console.log('✅ Booking created with automatic painter assignment');",
-									"    console.log('📋 Booking ID:', response.data.id);",
+									"    console.log('📋 Booking ID:', response.data.bookingId);",
+									"    console.log('👤 Customer:', response.data.customer?.name);",
 									"    console.log('🎨 Assigned Painter:', response.data.painter?.name || 'Not assigned');",
 									"    console.log('📅 Time Slot:', response.data.startTime, 'to', response.data.endTime);",
+									"    console.log('📊 Status:', response.data.status);",
 									"}"
 								],
 								"type": "text/javascript"
@@ -521,7 +555,9 @@
 									"    console.log('👤 User role:', userRole);",
 									"    console.log('📋 Total bookings:', response.data.length);",
 									"    if (response.data.length > 0) {",
-									"        console.log('📅 First booking:', response.data[0].startTime, 'to', response.data[0].endTime);",
+									"        console.log('👤 Customer:', response.data[0].customer?.name);",
+									"        console.log('🎨 Painter:', response.data[0].painter?.name || 'Not assigned');",
+									"        console.log('📅 Time slot:', response.data[0].startTime, 'to', response.data[0].endTime);",
 									"        console.log('📊 Status:', response.data[0].status);",
 									"    }",
 									"}"
